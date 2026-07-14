@@ -519,7 +519,7 @@ tr.click:hover td{background:#dff3ec}
           <div class="muted" style="margin-top:2px">Bars = review count · line = avg score (0–5). Dated by receipt, not stay month — reference only. Themes &amp; red flags (EN/AR) pending the NLP module.</div></div>
         <div class="card"><h3>Auto-generated insights <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">— editable</span></h3><ul class="ins" id="ins-list">${insData.items.map((it, i) => `<li>${it.html}<button class="ins-x" data-i="${i}" title="Remove">×</button></li>`).join('')}</ul><div class="ins-add"><input id="ins-in" class="ins-in" placeholder="Add your own insight…" maxlength="220"><button class="btn ghost" id="ins-add-btn">＋ Add</button></div></div>
       </div>
-      <div class="sec"><h3>RM / HSM commentary <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">— ${esc(hostName(host))} · ${mLabel(st.to)}</span></h3>
+      <div class="sec"><h3>RM / HSM commentary <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">— ${esc(host)} · ${mLabel(st.to)}</span></h3>
         ${pub ? `<div class="cmt-pub"><b>Published in this report:</b> ${esc(pub)}</div>` : ''}
         <textarea id="cmt" class="cmt" placeholder="Revenue Manager / Host Success Manager — add qualitative context (pricing actions, guest issues, one-offs, decisions to note). Saved on this device; use Export to publish it into the shared report for everyone."></textarea>
         <div class="cmt-bar"><span class="muted" id="cmt-status"></span><button class="btn ghost" id="cmt-export">Export commentary (.json)</button></div>
