@@ -217,6 +217,11 @@ tr.click:hover td{background:#dff3ec}
 @media print{.mini-sel,.ins-x,.ins-add{display:none}}
 @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}select{max-width:none}}
 @media print{.filters,.btn,.appbar .tag{display:none}.appbar{-webkit-print-color-adjust:exact;print-color-adjust:exact}#app{padding-top:8px}}
+.sec-x{border:none;background:none;color:var(--ld-border);cursor:pointer;font-size:17px;line-height:1;padding:0 2px}
+.sec-x:hover{color:#b0403f}
+.sec-off{border:1px dashed var(--ld-border);border-radius:8px;padding:10px 12px;font-size:12px}
+.sec-show{color:var(--ld-turquoise-2);font-weight:600;cursor:pointer}
+@media print{.sec-x,.sec-off{display:none}}
 
 </style>
 <div id="app">
@@ -439,6 +444,11 @@ tr.click:hover td{background:#dff3ec}
     return `<div class="muted" style="margin-bottom:6px">Overall ${s.overall} · ${s.n} rated Airbnb reviews (to date)</div>${bars}
       <div style="margin-top:8px;font-size:12px"><b style="color:#0a7a3f">Strengths:</b> ${best}. &nbsp; <b style="color:#b0403f">Improve:</b> ${wtxt}${worst[0][1] < 4.4 ? ' — priority' : ''}.</div>`;
   }
+  // Optional sections a VPM can drop from the report (per host, saved on this device).
+  const secKey = (id, host) => `ld-sec-off:${id}:${host}`;
+  function secHidden(id, host) { try { return localStorage.getItem(secKey(id, host)) === '1'; } catch (e) { return false; } }
+  function setSecHidden(id, host, off) { try { off ? localStorage.setItem(secKey(id, host), '1') : localStorage.removeItem(secKey(id, host)); } catch (e) {} }
+
   function insightItems(host, ms, K, pK, ranked, rw) {
     const rmKey = `ld-ins-x:${host}:${st.to}`, addKey = `ld-ins-add:${host}:${st.to}`;
     let removed = [], added = [];
@@ -522,8 +532,7 @@ tr.click:hover td{background:#dff3ec}
     let extra = `<tr class="net-row"><td><b>Host share</b></td><td class="num"><b>${money(s.hs)}</b></td><td class="num"><b>${pctg(s.hs)}</b>%</td></tr>`;
     if (exp != null) {
       const net = s.hs - exp;
-      extra += `<tr><td>Forex charges</td><td class="num">−&nbsp;${money(s.fx)}</td><td class="num">${pctg(s.fx)}%</td></tr>
-      <tr><td>Other expenses <span class="muted">(entered below)</span></td><td class="num">−&nbsp;<span id="exp-amt">${money(exp - s.fx > 0 ? exp - s.fx : 0)}</span></td><td class="num"><span id="exp-pct">${pctg(exp - s.fx > 0 ? exp - s.fx : 0)}</span>%</td></tr>
+      extra += `<tr><td>Total expenses <span class="muted">(editable below)</span></td><td class="num">−&nbsp;<span id="exp-amt">${money(exp)}</span></td><td class="num"><span id="exp-pct">${pctg(exp)}</span>%</td></tr>
       <tr class="net-row"><td><b>Net payout to host</b></td><td class="num"><b id="net-amt"${net < 0 ? ' class="down"' : ''}>${money(net)}</b></td><td class="num"><b id="net-pct">${pctg(net)}</b>%</td></tr>`;
     }
     return `<table><thead><tr><th>Component</th><th class="num">Amount</th><th class="num">% of booking amt</th></tr></thead><tbody>
@@ -562,7 +571,7 @@ tr.click:hover td{background:#dff3ec}
           ${selN
             ? `<div class="muted" style="margin-top:4px">Host share = ${pct(Kld.s.amt ? Kld.s.hs / Kld.s.amt : null)} of booking amount. <b>Net payout is host-level</b> — clear the unit filter to enter expenses.</div>`
             : `<div class="exp-box"><div class="cmt-bar"><input id="exp-in" class="exp-in" type="number" min="0" step="1" inputmode="decimal" placeholder="Total expenses (SAR)"><span class="muted" id="exp-status"></span><button class="btn ghost" id="exp-export">Export expenses (.json)</button></div>
-              <div class="muted" style="margin-top:4px">Forex is pre-filled from the bookings; add cleaning, supplies, maintenance etc. on top. Net payout = host share − total expenses (host-level, ${mLabel(st.to)}). Saved on this device; Export publishes it into the shared report.</div></div>`}
+              <div class="muted" style="margin-top:4px">Total expenses starts from the forex charges on these bookings (${money(Kld.s.fx)}); overwrite it to include cleaning, supplies, maintenance etc. Net payout = host share − total expenses (host-level, ${mLabel(st.to)}). Saved on this device; Export publishes it into the shared report.</div></div>`}
         </div>
         <div class="card"><h3 class="h3-row"><span>Trend</span> <span class="sel-group">${trendWinSelect()}${trendSelect()}</span></h3>${trendSVG(host, st.lps)}<div class="muted">${trendMonths().length} month(s) shown · pick metric &amp; time window above.</div></div>
       </div>
@@ -577,10 +586,12 @@ tr.click:hover td{background:#dff3ec}
         <tbody>${ranked.map((u, i) => `<tr class="click" data-lp="${esc(u.u)}"><td>${i + 1}</td><td>${esc(u.u)}</td><td class="num">${u.n}</td><td class="num">${u.alos == null ? '—' : u.alos.toFixed(1)}</td><td class="num">${u.occ == null ? '—' : pct(u.occ)}</td><td class="num">${money(u.g)}</td><td class="num">${money(u.hs)}</td></tr>`).join('') || '<tr><td colspan=7 class="muted">No unit revenue in range.</td></tr>'}</tbody></table></div>
       ${selN === 1 ? '' : `<div class="sec"><h3>Occupancy heatmap — unit × month${selN ? ' <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">(selected units)</span>' : ''}</h3>${heatmap(host)}</div>`}
       <div class="grid2 sec">
-        <div class="card"><h3>Reviews — received in period <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">(reference)</span></h3>
+        ${secHidden('rev', host)
+          ? `<div class="card sec-off"><span class="muted">Reviews section hidden.</span> <a class="sec-show" data-sec="rev">＋ Show reviews</a></div>`
+          : `<div class="card"><h3 class="h3-row"><span>Reviews — received in period <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">(reference)</span></span><button class="sec-x" data-sec="rev" title="Remove this section">×</button></h3>
           <div style="display:flex;gap:22px;align-items:flex-end;margin-bottom:4px"><div><div class="rev-big">${rw.avg == null ? '—' : rw.avg}</div><div class="muted">avg score, rated</div></div><div><div class="rev-big">${rw.n}</div><div class="muted">reviews in window</div></div></div>
           ${reviewsTrendSVG(rw.series)}
-          <div class="muted" style="margin-top:2px">Bars = review count · line = avg score (0–5). Dated by receipt, not stay month — reference only. Themes &amp; red flags (EN/AR) pending the NLP module.</div></div>
+          <div class="muted" style="margin-top:2px">Bars = review count · line = avg score (0–5). Dated by receipt, not stay month — reference only. Themes &amp; red flags (EN/AR) pending the NLP module.</div></div>`}
         <div class="card"><h3>Auto-generated insights <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">— editable</span></h3><ul class="ins" id="ins-list">${insData.items.map((it, i) => `<li>${it.html}<button class="ins-x" data-i="${i}" title="Remove">×</button></li>`).join('')}</ul><div class="ins-add"><input id="ins-in" class="ins-in" placeholder="Add your own insight…" maxlength="220"><button class="btn ghost" id="ins-add-btn">＋ Add</button></div></div>
       </div>
       <div class="sec"><h3>RM / HSM commentary <span style="text-transform:none;font-weight:400;color:var(--ld-grey-text)">— ${esc(host)} · ${mLabel(st.to)}</span></h3>
@@ -611,6 +622,8 @@ tr.click:hover td{background:#dff3ec}
       });
       view.querySelector('#exp-export').onclick = exportExpenses;
     }
+    view.querySelectorAll('.sec-x').forEach(b => b.onclick = () => { setSecHidden(b.dataset.sec, host, true); render(); });
+    view.querySelectorAll('.sec-show').forEach(a => a.onclick = () => { setSecHidden(a.dataset.sec, host, false); render(); });
     const tsel = view.querySelector('#trend-sel'); if (tsel) tsel.onchange = () => { st.trend = tsel.value; render(); };
     const twsel = view.querySelector('#trend-win'); if (twsel) twsel.onchange = () => { st.trendWin = twsel.value; render(); };
     view.querySelectorAll('.ins-x').forEach(b => b.onclick = () => {
