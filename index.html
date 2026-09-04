@@ -1309,6 +1309,8 @@ svg { max-height: 190px; }
     const autoExp = autoExpOf(Kld.s, Khc.s);
     const expStored = effExp(host, st.to), exp = expStored || autoExp;
     const net = payoutOf(Kld.s, Khc.s, exp);
+    // When a unit subset is active, manual expenses can't be split per unit — use auto-computed only.
+    const unitNet = selN ? payoutOf(Kld.s, Khc.s, autoExp) : null;
     const hasHc = Khc.s.amt !== 0 || Khc.s.hs !== 0 || Khc.s.n !== 0;
     const unitRows = {};
     rows.forEach(r => { const u = unitRows[r.u] = unitRows[r.u] || { u:r.u, g:0, n:0, hs:0, bk:0 }; u.g+=r.amt - (r.xamt || 0); u.n+=r.n - (r.xn || 0); u.hs+=r.hs; u.bk+=(r.bk||0) - (r.xbk || 0); });
@@ -1334,7 +1336,7 @@ svg { max-height: 190px; }
       <h2 class="view-title">${multi ? st.hosts.length + ' ' + T('hosts combined') : esc(hostName(host))} <span class="muted" style="font-size:13px">${multi ? esc(st.hosts.join(' · ')) : esc(host) + ' · ' + esc(H[host] ? H[host].city : '')} · ${rangeLabel()}</span></h2>${provNote()}
       <div class="kpis">
         ${selN
-          ? card(T('Net payout to host'), '—', T('host-level — clear the unit filter'))
+          ? card(T('Net payout to host'), money(unitNet), T('auto-computed · manual expenses excluded'), '', '', unitNet < 0 ? 'down' : '')
           : card(T('Net payout to host'), money(net), '', deltaHTML(net, pNet), 'kpi-net', net < 0 ? 'down' : '')}
         ${card(T('Occupancy'), pct(K.o), unitCount(rows) + (selN ? ` ${T('units')} · ${selN} ${T('of')} ${totalCodes} ${T('selected')}` : ' ' + T('units')))}
         ${card(T('ADR'), K.adr == null ? '—' : money(K.adr), T('per booked night'))}
@@ -1342,11 +1344,11 @@ svg { max-height: 190px; }
         ${card(T('ALOS'), K.alos == null ? '—' : K.alos.toFixed(1), T('avg nights / booking'))}
       </div>
       <div class="${hasHc ? 'grid2' : ''}">
-        <div class="card"><h3>${T('Revenue breakdown — payment collected by Livedin')}</h3>${mixTable(Kld.s, selN ? null : exp, { tax: true, hcLd: Khc.s.ld })}
+        <div class="card"><h3>${T('Revenue breakdown — payment collected by Livedin')}</h3>${mixTable(Kld.s, selN ? autoExp : exp, { tax: true, hcLd: Khc.s.ld })}
           ${selN
             ? `<div class="muted" style="margin-top:4px">${isAr()
-                ? `حصة المضيف = ${pct(Kld.s.amt ? Kld.s.hs / Kld.s.amt : null)} من مبلغ الحجز. <b>صافي المستحق يُحسب على مستوى المضيف</b> — امسح فلتر الوحدات لإدخال المصروفات.`
-                : `Host share = ${pct(Kld.s.amt ? Kld.s.hs / Kld.s.amt : null)} of booking amount. <b>Net payout is host-level</b> — clear the unit filter to enter expenses.`}</div>`
+                ? `حصة المضيف = ${pct(Kld.s.amt ? Kld.s.hs / Kld.s.amt : null)} من مبلغ الحجز. صافي المستحق محسوب تلقائيًا من بيانات هذه الوحدة — امسح فلتر الوحدات لإدخال المصروفات اليدوية.`
+                : `Host share = ${pct(Kld.s.amt ? Kld.s.hs / Kld.s.amt : null)} of booking amount. Net payout uses auto-computed expenses for this unit — clear the unit filter to enter manual expenses.`}</div>`
             : `<div class="exp-box"><div class="cmt-bar"><input id="exp-in" class="exp-in" type="number" step="1" inputmode="decimal" placeholder="${T('Total expenses (SAR)')}"><span class="muted" id="exp-status"></span><button class="btn ghost" id="exp-export">${T('Export expenses (.json)')}</button></div>
               <div class="muted" style="margin-top:4px">${isAr()
                 ? `إجمالي المصروفات محسوب من البيانات (فروق العملة، المستلزمات، الغسيل، والتنظيف المسترد على الحجوزات المحصّلة لدى المضيف) — عدّله لإضافة الصيانة والأضرار وغيرها. صافي المستحق = حصة المضيف − إجمالي المصروفات${Khc.s.ld ? ' − حصة Livedin على الحجوزات المحصّلة لدى المضيف' : ''}، مطابقًا للمبلغ النهائي في كشف الحساب (${mLabel(st.to)}). يُحفظ على هذا الجهاز؛ والتصدير ينشره في التقرير المشترك.`
